@@ -20,11 +20,11 @@ FLV文件分为两个部分:文件头和数据部分。文件头包含的基本�
 
 ScirptData、Video和Audio这三种tag具有相同的Tag Header，通过第一个字节(Type)标明具体是何种tag。不同的是Tag Data字段。
 
-#文件头
+# 文件头
 参考前面的图示，FLV的文件头可以一目了然。
 
 
-#ScriptData Tag
+# ScriptData Tag
 Script Tag一般是第一个tag，用于表示该FLV文件的元数据，因此FLV文件只有一个ScriptData Tag。
 
 Script Tag采样[AMF](https://en.wikipedia.org/wiki/Action_Message_Format#AMF0)二进制方式序列化数据。FLV的ScriptData Tag有字符、浮点数、字符串、日期、数组和对象这几种类型。*序列化时，每种类型前面都用一个字节标识紧接着的是何种类型。因此，反序列化时先读取标识符，接着根据标识符指明的类型解读紧接着的二进制*。显然，在反序列化时，需要建立一个映射关系，类型和相应的处理函数的映射关系，因为不同的类型有着不同的读取方式。
@@ -303,7 +303,7 @@ void parseDataValue(std::ifstream &in)
 ![key_frames](https://raw.githubusercontent.com/luotuo44/FlvExploere/master/images/keyframes_example.jpg)
 
 
-#VieoData Tag
+# VieoData Tag
 继续盗用[雷神](http://blog.csdn.net/leixiaohua1020/article/details/17934487)的图，video tag数据部分的第一个字节注明视频数据的帧类型已经编码类型，如下：
 ![video_data_tag](https://raw.githubusercontent.com/luotuo44/FlvExploere/master/images/video_data_tag.jpg)
 
@@ -330,7 +330,7 @@ void parseDataValue(std::ifstream &in)
 
 
 
-#AudioData Tag
+# AudioData Tag
 继续上[雷神](http://blog.csdn.net/leixiaohua1020/article/details/17934487)的图，audio tag数据部分的第一个字节注明音频的编码类型、采样率、精度等信息。
 ![audio_data_tag](https://raw.githubusercontent.com/luotuo44/FlvExploere/master/images/audio_data_tag.jpg)
 

@@ -16,7 +16,7 @@ FLV文件分为两个部分:文件头和数据部分。文件头包含的基本�
 
 
 盗用[雷神](http://blog.csdn.net/leixiaohua1020/article/details/17934487)的一张图，FLV的文件头和Tag简单如下：
-![详细的说明如下](https://raw.githubusercontent.com/luotuo44/FlvExploere/master/images/flv.jpg)
+![flv](https://raw.githubusercontent.com/luotuo44/FlvExploere/master/images/flv.jpg)
 
 ScirptData、Video和Audio这三种tag具有相同的Tag Header，通过第一个字节(Type)标明具体是何种tag。不同的是Tag Data字段。
 
@@ -269,7 +269,7 @@ void parseDataValue(std::ifstream &in)
     }
 }
 ```
-代码中的`op`可以是一个全局变量，类型为`std::map<int, std::function<void (std::ifstream &)>`。初始化`op`是体力活，这里不介绍了。可以直接观看源码。
+代码中的`op`可以是一个全局变量，类型为`std::map<int, std::function<void (std::ifstream &)>`。初始化`op`是体力活，这里不介绍了。可以直接观看[源码](https://github.com/luotuo44/FlvExploere/blob/master/ScriptDataTag.cpp#L37)。
 
 
 ##元数据内容

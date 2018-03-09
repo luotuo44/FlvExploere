@@ -59,6 +59,12 @@ std::vector<std::vector<std::string>> VideoDataTag::getPrintTable()const
         {std::to_string(m_tag_ts), frameTypeString(), codecTypeString(), std::to_string(m_tag_data_len)}
     };
 
+    if(m_codec_type == 7)//AVC
+    {
+        vec[0].insert(vec[0].end(), {"AVCPacketType", "CompositionTime"});
+        vec[1].insert(vec[1].end(), {std::to_string(m_avc_packet_type), std::to_string(m_composition_time)});
+    }
+
     return vec;
 }
 
@@ -165,7 +171,9 @@ void VideoDataTag::readVideoHeader()
     parseMetaData(ch);
     if( m_codec_type == 7 )//AVC
     {
-
+        readBytes(&ch, 1);
+        m_avc_packet_type = ch;
+        m_composition_time = readInt(3);
     }
 }
 
@@ -175,7 +183,11 @@ void VideoDataTag::readTagData()
 {
     readVideoHeader();
 
-    m_in.seekg(m_tag_data_len-m_read_bytes, std::ios_base::cur);
+    size_t data_len = m_tag_data_len - m_read_bytes;
+    m_video_real_data.resize(data_len);
+    m_in.read(reinterpret_cast<char*>(m_video_real_data.data()), data_len);
+
+    //m_in.seekg(m_tag_data_len-m_read_bytes, std::ios_base::cur);
 }
 
 
@@ -196,5 +208,61 @@ void VideoDataTag::parseMetaData(char ch)
     m_codec_type = Helper::getNBits<4>(ch, 0);
 }
 
+
+
+
+//----------------------------------------------------------------
+
+std::vector<uchar> AVCConfigurationRecord::readNBytes(size_t num_bytes)
+{
+    if(m_read_pos + num_bytes > m_origin_data.size())
+        throw std::out_of_range("out of read range");
+
+    std::vector<uchar> vec(m_origin_data.begin()+m_read_pos, m_origin_data.begin()+m_read_pos+num_bytes);
+    m_read_pos += num_bytes;
+
+    return vec;
+}
+
+
+//https://www.jianshu.com/p/e1e417eee2e7
+void AVCConfigurationRecord::parse()
+{
+    m_configuration_version = readNBytesToTT<uchar>(1);
+    m_avc_profile_indication = readNBytesToTT<uchar>(1);
+    m_profile_compatibility = readNBytesToTT<uchar>(1);
+    m_avc_level_indication = readNBytesToTT<uchar>(1);
+
+
+    uchar tmp = readNBytesToTT<uchar>(1);
+    size_t first_reserved_bit = Helper::getNBits<6>(tmp, 2);
+    if(first_reserved_bit != 0x3F)//111111
+        throw std::runtime_error("reserve bit not equals to 111111");
+
+    uchar length_size_minus_one = Helper::getNBits<2>(tmp, 0);
+    (void)length_size_minus_one;
+
+    tmp = readNBytesToTT<uchar>(1);
+    size_t second_reserved_bit = Helper::getNBits<3>(tmp, 5);
+    if(second_reserved_bit != 7)
+        throw std::runtime_error("reserve bit not equals to 111");
+
+    size_t num_of_sequence_parameter_sets = Helper::getNBits<5>(tmp, 0);
+    m_sequence_parameter_set_nal_unit.reserve(num_of_sequence_parameter_sets);
+    for(size_t i = 0; i < num_of_sequence_parameter_sets; ++i)
+    {
+        size_t len = readNBytesToTT<size_t>(2);
+        m_sequence_parameter_set_nal_unit.push_back(readNBytes(len));
+    }
+
+
+    size_t num_of_picture_parameter_sets = readNBytesToTT<size_t>(1);
+    m_picture_parameter_set_nal_unit.reserve(num_of_picture_parameter_sets);
+    for(size_t i = 0; i < num_of_picture_parameter_sets; ++i)
+    {
+        size_t len = readNBytesToTT<size_t>(2);
+        m_picture_parameter_set_nal_unit.push_back(readNBytes(len));
+    }
+}
 
 }

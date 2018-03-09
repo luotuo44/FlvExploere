@@ -9,6 +9,8 @@
 #include<fstream>
 #include<string>
 #include<vector>
+#include<iterator>
+#include<iomanip>
 
 
 #include"Header.h"
@@ -20,6 +22,31 @@
 
 
 using uchar = unsigned char;
+
+
+void printAVCConfigurationRecord(const FLV::AVCConfigurationRecord &avc_cfg_rd)
+{
+    std::cerr<<"configurationVersion = "<<static_cast<int>(avc_cfg_rd.configurationVersion())<<std::endl;
+    std::cerr<<"AVCProfileIndication = "<<static_cast<int>(avc_cfg_rd.AVCProfileIndication())<<std::endl;
+    std::cerr<<"profile_compatibility = "<<static_cast<int>(avc_cfg_rd.profile_compatibility())<<std::endl;
+    std::cerr<<"AVCLevelIndication = "<<static_cast<int>(avc_cfg_rd.AVCLevelIndication())<<std::endl;
+
+    auto& sps_data = avc_cfg_rd.sequenceParameterSetNALUnit();
+    auto& pps_data = avc_cfg_rd.pictureParameterSetNALUnit();
+
+    std::cerr<<std::hex<<std::showbase;
+    for(auto &sps : sps_data)
+    {
+        std::copy(sps.begin(), sps.end(), std::ostream_iterator<int>(std::cerr, ", "));
+        std::cerr<<std::endl;
+    }
+
+    for(auto &pps : pps_data)
+    {
+        std::copy(pps.begin(), pps.end(), std::ostream_iterator<int>(std::cerr, ", "));
+        std::cerr<<std::endl;
+    }
+}
 
 
 int main(int argc, char **argv)
@@ -61,6 +88,7 @@ int main(int argc, char **argv)
     (void)first_prev_len;
 
 
+    size_t last_dts = 0;
     size_t count = 0;
     char type;
     while(in.read(&type, 1) && count < print_tag_num)
@@ -80,7 +108,16 @@ int main(int argc, char **argv)
                 MP::printTitle(2, "VideoData Tag");
                 FLV::VideoDataTag vd(in);
                 vd.parse();
+                const std::vector<uchar> &rd = vd.videoRealData();
+                if(vd.avcPacketType() == 0)
+                    printAVCConfigurationRecord(FLV::AVCConfigurationRecord(rd.begin(), rd.end()));
+
                 MP::printTable(vd.getPrintTable());
+                //std::copy(rd.begin(), rd.begin()+4, std::ostream_iterator<uint32_t>(std::cerr, ", "));
+                //std::cerr<<",  size = "<<rd.size()-4<<std::endl;
+                //std::cerr<<"dts = "<<90*vd.tagTs()<<"\t diff "<<90*(vd.tagTs()-last_dts)<<"\t ";
+                //std::cerr<<"pts = "<<90*(vd.tagTs() + vd.compositionTime())<<std::endl;
+                last_dts = vd.tagTs();
                 break;
             }
 
